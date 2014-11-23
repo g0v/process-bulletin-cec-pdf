@@ -6,6 +6,8 @@ use warnings;
 use File::Basename;
 use File::Path qw(make_path);
 
+use Parallel::ForkManager;
+
 sub convert_one {
     my $pdf_path = shift;
     my ($name, $path, $suffix) = fileparse($pdf_path, ".pdf");
@@ -23,8 +25,13 @@ sub convert_one {
     }
 }
 
+my $forkman = Parallel::ForkManager->new(3);
+
 while (<>) {
     chomp;
+    my $pid = $forkman->start and next;
     convert_one($_);
     say "DONE $_";
+    $forkman->finish;
 }
+$forkman->wait_all_children;
