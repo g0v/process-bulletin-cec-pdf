@@ -14,6 +14,13 @@ sub convert_one {
     $output_base = "converted/${path}/$name/pdftoppm";
     make_path($output_base) unless -d $output_base;
     (system("pdftoppm -png $pdf_path $output_base/page") == 0) or die $?;
+
+    my $output_base_edge = "converted/${path}/$name/edge";
+    make_path($output_base_edge);
+    for my $page (<$output_base/page-*.png>) {
+        my ($page_filename) = fileparse($page);
+        system("convert $page -canny 1 -monochrome ${output_base_edge}/${page_filename}") == 0 or die $?;
+    }
 }
 
 while (<>) {
