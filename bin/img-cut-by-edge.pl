@@ -72,7 +72,12 @@ sub start_cutting {
                 }
 
                 if (my $box_img = $img->crop(%$box)) {
-                    $box_img->write(file => "$ctx->{output}/box-$k.png");
+                    $box_img
+                    ->filter(type=>"conv", coef=>[-0.5, 2, -0.5 ])  #sharp
+                    ->filter( type => "autolevels", lsat => 0, usat => 0 )
+                    ->convert( preset => 'grey' )
+                    ->write(file => "$ctx->{output}/box-$k.png");
+
                     $img_copy->box( box => [@{$box}{"left","top","right","bottom"}], filled => 0, color => "green");
                 }
             }
