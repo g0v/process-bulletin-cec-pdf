@@ -13,27 +13,24 @@ sub grok_boxes {
     my $workdir = shift;
     my %stats;
     for my $box ($workdir->all_files) {
-        last;
         # left top right bottom
         my ($left, $top, $right, $bottom) = $box->filename =~ m<box\-([0-9]+),([0-9]+),([0-9]+),([0-9]+)\.png\z>;
         $left or next;
 
         my $box_txt = $box->name =~ s/\.png\z//r;
         system("tesseract $box $box_txt -l chi_tra -psm 6") == 0 or die $?;
-        next;
 
-        my $width = $right - $left;
-        my $height = $bottom - $top;
-
-        my $area = $width * $height;
-        $area = substr($area,0,1) . ("0" x (length($area)-1));
-        my $ratio = int(100*($width/$height))/100;
-
-        $stats{width}{$width}++;
-        $stats{height}{$height}++;
-        $stats{area}{$area}++;
-        $stats{wxh}{"${width}x${height}"}++;
-        $stats{wph}{$ratio}++;
+        # next;
+        # my $width = $right - $left;
+        # my $height = $bottom - $top;
+        # my $area = $width * $height;
+        # $area = substr($area,0,1) . ("0" x (length($area)-1));
+        # my $ratio = int(100*($width/$height))/100;
+        # $stats{width}{$width}++;
+        # $stats{height}{$height}++;
+        # $stats{area}{$area}++;
+        # $stats{wxh}{"${width}x${height}"}++;
+        # $stats{wph}{$ratio}++;
     }
 
     my @boxes;
