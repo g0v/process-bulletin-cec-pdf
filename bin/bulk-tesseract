@@ -1,0 +1,76 @@
+#!/usr/bin/env perl
+use v5.18;
+use strict;
+use warnings;
+
+use FindBin '$Bin';
+use JSON;
+use IO::All;
+
+my $JSON = JSON->new->utf8->pretty;
+
+sub grok_boxes {
+    my $workdir = shift;
+    my %stats;
+    for my $box ($workdir->all_files) {
+        last;
+        # left top right bottom
+        my ($left, $top, $right, $bottom) = $box->filename =~ m<box\-([0-9]+),([0-9]+),([0-9]+),([0-9]+)\.png\z>;
+        $left or next;
+
+        my $box_txt = $box->name =~ s/\.png\z//r;
+        system("tesseract $box $box_txt -l chi_tra -psm 6") == 0 or die $?;
+        next;
+
+        my $width = $right - $left;
+        my $height = $bottom - $top;
+
+        my $area = $width * $height;
+        $area = substr($area,0,1) . ("0" x (length($area)-1));
+        my $ratio = int(100*($width/$height))/100;
+
+        $stats{width}{$width}++;
+        $stats{height}{$height}++;
+        $stats{area}{$area}++;
+        $stats{wxh}{"${width}x${height}"}++;
+        $stats{wph}{$ratio}++;
+    }
+
+    my @boxes;
+    for my $box ($workdir->all_files) {
+        next unless $box->filename =~ m{box-(?<left>[0-9]+),(?<top>[0-9]+),(?<right>[0-9]+),(?<bottom>[0-9]+)\.txt};
+        say $+{left};
+        push @boxes, {
+            text => "".($box->utf8->all),
+            box => {
+                left => $+{left},
+                top  => $+{top},
+                right => $+{right},
+                bottom => $+{bottom},
+            }
+        }
+    }
+    return \@boxes;
+}
+
+for my $dir (io("converted/pdf/")->all_dirs) {
+    my $uuid = $dir->filename;
+    my @pages = $dir->catdir("pdftoppm")->all_files;
+    for my $page (@pages) {
+        my $mask = $dir->catfile("edge", $page->filename);
+        die "Expect a page edge mask file at @{[ $mask->name ]} but it is missing." unless $mask->exists;
+
+        my ($page_number) =  $page->filename =~ m{page-(\d+)\.png};
+        my $workdir = io->catdir("tesseract", "$uuid", "box", $page_number)->mkpath;
+
+        say "processing $uuid";
+        system("$^X $Bin/img-cut-by-edge.pl -o $workdir -i $page -m $mask") == 0 or die $?;
+
+        my $page_struct = {
+            page_number => $page->filename,
+            text_boxes => grok_boxes($workdir)
+        };
+        io("data/pdf/$uuid/page-${page_number}.json")->assert->print( $JSON->encode($page_struct) );
+    }
+    last;   
+}
