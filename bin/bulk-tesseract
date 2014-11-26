@@ -6,19 +6,19 @@ use warnings;
 use FindBin '$Bin';
 use JSON;
 use IO::All;
+use Parallel::ForkManager;
 
 my $JSON = JSON->new->utf8->pretty;
 
 sub grok_boxes {
     my $workdir = shift;
+
     my %stats;
     for my $box ($workdir->all_files) {
-        my ($left, $top, $right, $bottom) = $box->filename =~ m<box\-([0-9]+),([0-9]+),([0-9]+),([0-9]+)\.png\z>;
+        my ($left, $top, $right, $bottom) = $box->filename =~ m<box\-([0-9]+),([0-9]+),([0-9]+),([0-9]+)\.png\z> or next;
+        next if ($right - $left < 10 || $bottom - $top < 10);
 
-        say "processing " . $box->filename;
-
-        $left or next;
-
+        say "processing " . $box->name;
         my $box_txt = $box->name =~ s/\.png\z//r;
         system("tesseract $box $box_txt -l chi_tra -psm 6") == 0 or die $?;
     }
@@ -42,7 +42,10 @@ sub grok_boxes {
     return \@boxes;
 }
 
+my $forkman = Parallel::ForkManager->new(4);
 for my $dir (io("converted/pdf/")->all_dirs) {
+    say "process $dir";
+    $forkman->start and next;
     my $uuid = $dir->filename;
     my @pages = $dir->catdir("pdftoppm")->all_files;
     for my $page (@pages) {
@@ -61,4 +64,6 @@ for my $dir (io("converted/pdf/")->all_dirs) {
         };
         io("data/pdf/$uuid/page-${page_number}.json")->assert->print( $JSON->encode($page_struct) );
     }
+    $forkman->finish;
 }
+$forkman->wait_all_children;
