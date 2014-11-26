@@ -94,7 +94,12 @@ sub start_cutting {
 
 sub main {
     my $ctx = shift;
-    die "Invalid params" unless -f $ctx->{input} && -f $ctx->{mask} && -d $ctx->{output};
+    die "missing: -i <input>" unless $ctx->{input};
+    die "missing: -m <mask>" unless $ctx->{mask};
+    die "missing: -o <output>" unless $ctx->{output};
+    die "not a file: $ctx->{input}"   unless -f $ctx->{input};
+    die "not a file: $ctx->{mask}"    unless -f $ctx->{mask};
+    die "not a dir:  $ctx->{output}"  unless -d $ctx->{output};
 
     $ctx->{input} = Imager->new( file => $ctx->{input} ) or die Imager->errstr;
     $ctx->{mask}  = Imager->new( file => $ctx->{mask} )  or die Imager->errstr;
