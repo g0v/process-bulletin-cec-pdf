@@ -36,9 +36,11 @@ sub grok_boxes {
     my @boxes;
     for my $box ($workdir->all_files) {
         next unless $box->filename =~ m{box-(?<left>[0-9]+),(?<top>[0-9]+),(?<right>[0-9]+),(?<bottom>[0-9]+)\.txt};
-        say $+{left};
+        my $text = $box->utf8->all;
+        $text =~ s/\s*\z//;
+        $text =~ s/\A\s*//;
         push @boxes, {
-            text => "".($box->utf8->all),
+            text => $text,
             box => {
                 left => $+{left},
                 top  => $+{top},
@@ -64,10 +66,9 @@ for my $dir (io("converted/pdf/")->all_dirs) {
         system("$^X $Bin/img-cut-by-edge.pl -o $workdir -i $page -m $mask") == 0 or die $?;
 
         my $page_struct = {
-            page_number => $page->filename,
+            page_number => $page_number,
             text_boxes => grok_boxes($workdir)
         };
         io("data/pdf/$uuid/page-${page_number}.json")->assert->print( $JSON->encode($page_struct) );
     }
-    last;   
 }
