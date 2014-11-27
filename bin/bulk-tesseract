@@ -26,17 +26,18 @@ sub grok_boxes {
     my @boxes;
     for my $box ($workdir->all_files) {
         next unless $box->filename =~ m{box-(?<left>[0-9]+),(?<top>[0-9]+),(?<right>[0-9]+),(?<bottom>[0-9]+)\.txt};
+        my $box_struct = {
+            left => $+{left},
+            top  => $+{top},
+            right => $+{right},
+            bottom => $+{bottom},
+        };
         my $text = $box->utf8->all;
         $text =~ s/\s*\z//;
         $text =~ s/\A\s*//;
         push @boxes, {
             text => $text,
-            box => {
-                left => $+{left},
-                top  => $+{top},
-                right => $+{right},
-                bottom => $+{bottom},
-            }
+            box => $box_struct,
         }
     }
     return \@boxes;
