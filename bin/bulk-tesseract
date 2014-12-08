@@ -7,6 +7,7 @@ use FindBin '$Bin';
 use JSON;
 use IO::All;
 use Parallel::ForkManager;
+use Getopt::Std;
 
 my $JSON = JSON->new->utf8->pretty;
 
@@ -43,18 +44,28 @@ sub grok_boxes {
     return \@boxes;
 }
 
-my $forkman = Parallel::ForkManager->new(4);
+my %opts;
+getopts('j:', %opts);
+
+$opts{j} ||= 4;
+
+
+my $forkman = Parallel::ForkManager->new($opts{j});
+
 for my $dir (io("converted/pdf/")->all_dirs) {
     say "process $dir";
 
     my $uuid = $dir->filename;
     my @pages = $dir->catdir("pdftoppm")->all_files;
-    for my $page (@pages) {
+    for my $page (@pages){ 
+        my ($page_number) =  $page->filename =~ m{page-(\d+)\.png};
+        my $output_file = "data/pdf/$uuid/page-${page_number}.json";
+        next if -f $output_file;
+
         $forkman->start and next;
         my $mask = $dir->catfile("edge", $page->filename);
         die "Expect a page edge mask file at @{[ $mask->name ]} but it is missing." unless $mask->exists;
 
-        my ($page_number) =  $page->filename =~ m{page-(\d+)\.png};
         my $workdir = io->catdir("tesseract", "$uuid", "box", $page_number)->mkpath;
 
         my $cmd = "$^X $Bin/img-cut-by-edge.pl -o $workdir -i $page -m $mask";
@@ -65,7 +76,7 @@ for my $dir (io("converted/pdf/")->all_dirs) {
             page_number => $page_number,
             text_boxes => grok_boxes($workdir)
         };
-        io("data/pdf/$uuid/page-${page_number}.json")->assert->print( $JSON->encode($page_struct) );
+        io($output_file)->assert->print( $JSON->encode($page_struct) );
         $forkman->finish;
     }
 }
