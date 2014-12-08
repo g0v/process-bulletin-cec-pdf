@@ -45,10 +45,8 @@ sub grok_boxes {
 }
 
 my %opts;
-getopts('j:', %opts);
-
+getopts('j:', \%opts);
 $opts{j} ||= 4;
-
 
 my $forkman = Parallel::ForkManager->new($opts{j});
 
