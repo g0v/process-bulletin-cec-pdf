@@ -45,15 +45,19 @@ sub grok_boxes {
 }
 
 my %opts;
-getopts('j:', \%opts);
+getopts('j:p:', \%opts);
 $opts{j} ||= 4;
 
 my $forkman = Parallel::ForkManager->new($opts{j});
 
 for my $dir (io("converted/pdf/")->all_dirs) {
+    my $uuid = $dir->filename;
+
+    if ($opts{p}) {
+        next unless index($uuid, $opts{p}) == 0;
+    }
     say "process $dir";
 
-    my $uuid = $dir->filename;
     my @pages = $dir->catdir("pdftoppm")->all_files;
     for my $page (@pages){ 
         my ($page_number) =  $page->filename =~ m{page-(\d+)\.png};
