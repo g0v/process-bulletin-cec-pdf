@@ -7,7 +7,6 @@ my $JSON = JSON->new->utf8->pretty->canonical;
 
 my $idx = {};
 
-my $i=0;
 for my $json_path (<data/pdf/*/*.json>) {
     my ($uuid, $page_number) = $json_path =~ m{data/pdf/([^/]+)/page-([0-9]+)\.json};
 
@@ -22,6 +21,7 @@ for my $json_path (<data/pdf/*/*.json>) {
 
         my $box_geometry = join ",", @{$box->{box}}{"left", "top", "right", "bottom"};
         push @{$t->{cutbox}}, "$uuid,$page_number,$box_geometry";
+        $t->{frequency} += 1;
     }
 
     say "DONE $json_path";
