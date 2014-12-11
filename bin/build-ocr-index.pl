@@ -13,7 +13,13 @@ for my $json_path (<data/pdf/*/*.json>) {
 
     my $data = $JSON->decode("". io($json_path)->all);
     for my $box (@{ $data->{text_boxes} }) {
-        my $t = $idx->{$box->{text}} ||= {};
+        my $text = $box->{text};
+
+        # next unless $text =~ /\A\p{Letter}+\z/;
+        next unless $text =~ /\A\p{Han}+\z/;
+
+        my $t = $idx->{$text} ||= {};
+
         my $box_geometry = join ",", @{$box->{box}}{"left", "top", "right", "bottom"};
         push @{$t->{cutbox}}, "$uuid,$page_number,$box_geometry";
     }
