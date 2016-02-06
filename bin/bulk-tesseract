@@ -21,7 +21,7 @@ sub grok_boxes {
 
         say "processing " . $box->name;
         my $box_txt = $box->name =~ s/\.png\z//r;
-        system("tesseract $box $box_txt -l chi_tra -psm 6") == 0 or die "tesserract failed: $! , $?";
+        system("tesseract $box $box_txt -l chi_tra -psm 10") == 0 or die "tesserract failed: $! , $?";
     }
 
     my @boxes;
